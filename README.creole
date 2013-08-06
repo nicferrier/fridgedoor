@@ -1,0 +1,8 @@
+= Fridgedoor - stick things =
+
+This is a paste bin site that I thought I would do for
+[[http://lispinsummerprojects.org/|LISP in Summer Projects]].
+
+It's a very simple Elnode app right now. Hopefully it will be more
+complicated by the end of the competition.
+
