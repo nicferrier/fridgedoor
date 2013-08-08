@@ -31,55 +31,6 @@
 (defconst fridgedoor-data-dir "~/fridgedoor"
   "Where we store uploads.")
 
-(defun fridgedoor-filename ()
-  (let* ((webname (format-time-string "%Y%m%d/%H/%M/%S-%N" (current-time)))
-         (filename
-          (concat
-           (file-name-as-directory fridgedoor-data-dir)
-           webname)))
-    (make-directory (file-name-directory filename) t)
-    (list webname filename)))
-
-(defun fridgedoor-handler (httpcon)
-  (elnode-method httpcon
-    (POST
-     (let ((title (elnode-http-param httpcon "title"))
-           (datatype (elnode-http-param httpcon "type"))
-           (data (elnode-http-param httpcon "data")))
-       (let* ((lst (list :title title :datatype datatype))
-              (lsttxt (format "%S" lst)))
-         (destructuring-bind (webname filename) (fridgedoor-filename)
-           (with-temp-file filename
-             (insert (format "%s\n" lst))
-             (insert data)
-             (write-file))
-           (elnode-send-redirect httpcon (concat "/" webname))))))
-    (GET
-     (elnode-docroot-for fridgedoor-data-dir
-         with target
-         on httpcon
-         do
-         (with-current-buffer (generate-new-buffer "*fridgedoor*")
-           (insert-file-contents target)
-           ;; Read the sexp then spit the doc out
-           (let ((meta (save-excursion
-                         (goto-char (point-min))
-                         (read (current-buffer)))))
-             (forward-line 1)
-             (elnode-http-start httpcon 200 '("Content-type" . "text/html"))
-             (elnode-http-return
-              httpcon (buffer-substring (point) (point-max)))))))))
-
-(defun fridgedoor-start ()
-  (interactive)
-  (elnode-start 'fridgedoor-handler :port 8092))
-
-(defconst fridgesite-assets-server
-  (elnode-webserver-handler-maker
-   (file-name-as-directory
-    (expand-file-name (concat fridgedoor-dir "www"))))
-  "Webserver for static assets.")
-
 (defun elnode-js-server (httpcon jquery-p &rest scripts)
   (let ((server (elnode-server-info httpcon)))
     (noflet ((script-it (name)
@@ -122,17 +73,78 @@ run.  Scripts to run must be wrapped in parens."
   (lambda (httpcon)
     (apply 'elnode-js-server httpcon jquery-p scripts)))
 
-(defun fridgesite-router (httpcon)
+(defun fridgedoor/filename ()
+  (let* ((webname (format-time-string "%Y%m%d/%H/%M/%S-%N" (current-time)))
+         (filename
+          (concat
+           (file-name-as-directory fridgedoor-data-dir)
+           webname)))
+    (make-directory (file-name-directory filename) t)
+    (list webname filename)))
+
+(defun fridgedoor/template (template-name &rest tmpl-args)
+  (apply 's-format
+         (with-temp-buffer
+           (insert-file-contents (concat fridgedoor-dir template-name))
+           (buffer-string))
+         tmpl-args))
+
+(defun fridgedoor-handler (httpcon)
+  (elnode-method httpcon
+    (POST
+     (let ((title (elnode-http-param httpcon "title"))
+           (datatype (elnode-http-param httpcon "type"))
+           (data (elnode-http-param httpcon "data")))
+       (let* ((lst (list :title title :datatype datatype))
+              (lsttxt (format "%S" lst)))
+         (destructuring-bind (webname filename) (fridgedoor/filename)
+           (with-temp-file filename
+             (insert (format "%s\n" lst))
+             (insert data)
+             (write-file))
+           (elnode-send-redirect httpcon (concat "/" webname))))))
+    (GET
+     (elnode-docroot-for fridgedoor-data-dir
+         with target
+         on httpcon
+         do
+         (with-current-buffer (generate-new-buffer "*fridgedoor*")
+           (insert-file-contents target)
+           ;; Read the sexp then spit the doc out
+           (let ((meta (save-excursion
+                         (goto-char (point-min))
+                         (read (current-buffer)))))
+             (forward-line 1)
+             (noflet ((buffer-substr (&optional start end)
+                        (buffer-substring
+                         (or start (point))
+                         (or end (point-max))))
+                      (alist (k v)
+                        (list (cons k v))))
+               (elnode-http-start httpcon 200 '("Content-type" . "text/html"))
+               (elnode-http-return
+                httpcon
+                (fridgedoor/template
+                 "page.html" 'aget
+                 (alist "content" (htmlize-protect-string (buffer-substr))))))))))))
+
+(defconst fridgedoor-assets-server
+  (elnode-webserver-handler-maker
+   (file-name-as-directory
+    (expand-file-name (concat fridgedoor-dir "www"))))
+  "Webserver for static assets.")
+
+(defun fridgedoor-router (httpcon)
   (elnode-hostpath-dispatcher
    httpcon
-   `(("^[^/]*//js$"
+   `(("^[^/]*//magnet/\\(.*\\)" . fridgedoor-handler)
+     ("^[^/]*//js$"
       . ,(elnode-make-js-server
           t 
-          "(function(){$(document).ready(function (){$.getScript(\"jquery.lettering-0.6.1.min.js\",function(){$(\"#logo\").lettering()})});})()"))
-     ("^[^/]*//\\(.*\\)" . ,fridgesite-assets-server))))
+          "(function(){$(document).ready(function (){$.getScript(\"/jquery.lettering-0.6.1.min.js\",function(){$(\"#logo a\").lettering()})});})()"))
+     ("^[^/]*//\\(.*\\)" . ,fridgedoor-assets-server))))
 
-(elnode-start 'fridgesite-router :port 8096)
-
+(elnode-start 'fridgedoor-router :port 8096)
 
 (provide 'fridgedoor)
 
