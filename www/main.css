@@ -1,0 +1,44 @@
+body {
+    font-family: sans-serif;
+}
+
+div#logo {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    font-size: 40pt;
+    margin-bottom: 20px;
+    letter-spacing: 5px;
+}
+
+div#logo span:nth-child(4n+1) {
+    color: Blue;
+    text-shadow: -2px 0 DarkBlue, 0 2px DarkBlue,2px 0 DarkBlue, 0 -2px DarkBlue;
+}
+
+div#logo span:nth-child(4n+2) {
+    color: Red;
+    text-shadow: -2px 0 DarkRed, 0 2px DarkRed,2px 0 DarkRed, 0 -2px DarkRed;
+}
+
+div#logo span:nth-child(4n+3) {
+    color: Orange;
+    text-shadow: -2px 0 DarkOrange, 0 2px DarkOrange,2px 0 DarkOrange, 0 -2px DarkOrange;
+}
+
+div#logo span:nth-child(4n+4) {
+    color: Green;
+    text-shadow: -2px 0 DarkGreen, 0 2px DarkGreen,2px 0 DarkGreen, 0 -2px DarkGreen;
+}
+
+div.section {
+    margin: 10px;
+}
+
+form {
+    display: block;
+}
+
+textarea {
+    width: 99% !important;
+}
