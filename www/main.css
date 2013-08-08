@@ -23,7 +23,7 @@ div#logo span:nth-child(4n+2) {
 
 div#logo span:nth-child(4n+3) {
     color: Orange;
-    text-shadow: -2px 0 DarkOrange, 0 2px DarkOrange,2px 0 DarkOrange, 0 -2px DarkOrange;
+    text-shadow: -2px 0 Tomato, 0 2px Tomato,2px 0 Tomato, 0 -2px Tomato;
 }
 
 div#logo span:nth-child(4n+4) {
@@ -41,4 +41,6 @@ form {
 
 textarea {
     width: 99% !important;
+    font-family: monospace;
+    font-size: 10pt;
 }
