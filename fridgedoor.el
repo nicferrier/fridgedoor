@@ -1,4 +1,4 @@
-;;; fridgedoor.el --- fridgedoor.el - a place to stick things
+;;; fridgedoor.el --- fridgedoor.el - a place to stick things -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013  Nic Ferrier
 
@@ -73,6 +73,66 @@
 (defun fridgedoor-start ()
   (interactive)
   (elnode-start 'fridgedoor-handler :port 8092))
+
+(defconst fridgesite-assets-server
+  (elnode-webserver-handler-maker
+   (file-name-as-directory
+    (expand-file-name (concat fridgedoor-dir "www"))))
+  "Webserver for static assets.")
+
+(defun elnode-js-server (httpcon jquery-p &rest scripts)
+  (let ((server (elnode-server-info httpcon)))
+    (noflet ((script-it (name)
+               (format
+                "{var e=document.createElement('script');
+e.setAttribute('src', 'http://%s/%s');
+e.setAttribute('language', 'javascript');
+document.body.appendChild(e);}"
+                server name))
+             (script-tag (script)
+               (if (equal (elt script 0) (elt "(" 0))
+                   (format
+                    "{var e=document.createElement('script');
+e.appendChild(document.createTextNode('%s'));
+document.body.appendChild(e);}"
+                    script)
+                   ;; Else it's a webname
+                   (script-it script))))
+      (elnode-http-start
+       httpcon 200 '("Content-type" . "application/x-javascript"))
+      (elnode-http-return
+       httpcon
+       (concat
+        "(function () {"
+        (if jquery-p 
+            (concat
+             (script-it "jquery-1.10.2.min.js")
+             (format
+              "var timer;timer=window.setInterval(function (){console.log(\"in timer\");if (!(typeof jQuery === \"undefined\")) {clearTimeout(timer);%s}}, 10);"
+              (loop for script in scripts
+                 concat (script-tag script))))) "})();")))))
+
+(defun elnode-make-js-server (jquery-p &rest scripts)
+  "Make a javascript server for the specified SCRIPTS.
+
+If JQUERY-P is `t' then make JQuery the first script.
+
+Each element of SCRIPTS can be either a web name or a script to
+run.  Scripts to run must be wrapped in parens."
+  (lambda (httpcon)
+    (apply 'elnode-js-server httpcon jquery-p scripts)))
+
+(defun fridgesite-router (httpcon)
+  (elnode-hostpath-dispatcher
+   httpcon
+   `(("^[^/]*//js$"
+      . ,(elnode-make-js-server
+          t 
+          "(function(){$(document).ready(function (){$.getScript(\"jquery.lettering-0.6.1.min.js\",function(){$(\"#logo\").lettering()})});})()"))
+     ("^[^/]*//\\(.*\\)" . ,fridgesite-assets-server))))
+
+(elnode-start 'fridgesite-router :port 8096)
+
 
 (provide 'fridgedoor)
 
