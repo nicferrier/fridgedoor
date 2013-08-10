@@ -1,6 +1,15 @@
+html {
+   height: 100%;
+}
+
 body {
     font-family: sans-serif;
+    height: 100%;
 }
+
+#thing {
+    display: none;
+} /* belt and braces */
 
 div#logo {
     position: fixed;
@@ -43,4 +52,14 @@ textarea {
     width: 99% !important;
     font-family: monospace;
     font-size: 10pt;
+}
+
+div.thing {
+    height: 98%;
+    margin-top: 50px;
+    margin-bottom: 80px;
+}
+
+pre {
+    min-height: 400px;
 }
